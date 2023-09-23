@@ -158,39 +158,37 @@ function isCuff()
 	end
 end
 
-RegisterCommand('+radiotalk', function()
-    if GetConvarInt('voice_enableRadios', 1) ~= 1 then return end
-    if isDead() or LocalPlayer.state.disableRadio then return end
+RRegisterCommand('+radiotalk', function()
+	if GetConvarInt('voice_enableRadios', 1) ~= 1 then return end
+	if isDead() or LocalPlayer.state.disableRadio then return end
 
-    if not exports["qb-policejob"]:IsHandcuffed() then
-        if not radioPressed and radioEnabled then
-            if radioChannel > 0 then
-                logger.info('[radio] Start broadcasting, update targets and notify server.')
-                playerTargets(radioData, MumbleIsPlayerTalking(PlayerId()) and callData or {})
-                TriggerServerEvent('pma-voice:setTalkingOnRadio', true)
-                radioPressed = true
-                playMicClicks(true)
-                if GetConvarInt('voice_enableRadioAnim', 0) == 1 and not (GetConvarInt('voice_disableVehicleRadioAnim', 0) == 1 and IsPedInAnyVehicle(PlayerPedId(), false)) and not disableRadioAnim then
-                    RequestAnimDict('random@arrests')
-                    while not HasAnimDictLoaded('random@arrests') do
-                        Wait(10)
-                    end
-                    TaskPlayAnim(PlayerPedId(), "random@arrests", "generic_radio_enter", 8.0, 2.0, -1, 50, 2.0, 0, 0, 0)
-                end
-                CreateThread(function()
-                    TriggerEvent("pma-voice:radioActive", true)
-                    while radioPressed and not LocalPlayer.state.disableRadio do
-                        Wait(0)
-                        SetControlNormal(0, 249, 1.0)
-                        SetControlNormal(1, 249, 1.0)
-                        SetControlNormal(2, 249, 1.0)
-                    end
-                end)
-            end
-        end
-    else
-        print("you are cuffed")
-    end
+	if not radioPressed and radioEnabled then
+		if radioChannel > 0 then
+			logger.info('[radio] Start broadcasting, update targets and notify server.')
+			playerTargets(radioData, MumbleIsPlayerTalking(PlayerId()) and callData or {})
+			TriggerServerEvent('pma-voice:setTalkingOnRadio', true)
+			radioPressed = true
+			playMicClicks(true)
+			if GetConvarInt('voice_enableRadioAnim', 0) == 1 and not (GetConvarInt('voice_disableVehicleRadioAnim', 0) == 1 and IsPedInAnyVehicle(PlayerPedId(), false)) and not disableRadioAnim then
+				RequestAnimDict('ultra@walkie_talkie')
+				while not HasAnimDictLoaded('ultra@walkie_talkie') do
+					Wait(10)
+				end
+				TaskPlayAnim(PlayerPedId(), "ultra@walkie_talkie", "walkie_talkie", 8.0, 2.0, -1, 50, 2.0, false, false, false)
+				radioProp = CreateObject(`prop_cs_hand_radio`, 1.0, 1.0, 1.0, 1, 1, 0)
+				AttachEntityToEntity(radioProp, PlayerPedId(), GetPedBoneIndex(PlayerPedId(), 18905), 0.13, 0.02, 0.02, 270.0, 50.0, -5.0, 1, 0, 0, 0, 2, 1)
+			end
+			CreateThread(function()
+				TriggerEvent("pma-voice:radioActive", true)
+				while radioPressed and not LocalPlayer.state.disableRadio do
+					Wait(0)
+					SetControlNormal(0, 249, 1.0)
+					SetControlNormal(1, 249, 1.0)
+					SetControlNormal(2, 249, 1.0)
+				end
+			end)
+		end
+	end
 end, false)
 
 RegisterCommand('-radiotalk', function()
@@ -201,14 +199,16 @@ RegisterCommand('-radiotalk', function()
 		TriggerEvent("pma-voice:radioActive", false)
 		playMicClicks(false)
 		if GetConvarInt('voice_enableRadioAnim', 0) == 1 then
-			StopAnimTask(PlayerPedId(), "random@arrests", "generic_radio_enter", -4.0)
+			StopAnimTask(PlayerPedId(), "ultra@walkie_talkie", "walkie_talkie", 1.0)
+			ClearPedTasks(PlayerPedId())
+			if radioProp ~= 0 then
+				DeleteObject(radioProp)
+				radioProp = 0
+			end
 		end
 		TriggerServerEvent('pma-voice:setTalkingOnRadio', false)
 	end
 end, false)
-if gameVersion == 'fivem' then
-	RegisterKeyMapping('+radiotalk', 'Talk over Radio', 'keyboard', GetConvar('voice_defaultRadio', 'LMENU'))
-end
 
 --- event syncRadio
 --- syncs the players radio, only happens if the radio was set server side.
